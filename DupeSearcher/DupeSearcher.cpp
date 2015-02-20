@@ -116,7 +116,7 @@ void DupeSearcher::SplitGroup(FileGroups::iterator groupIt)
 	FileInfo& firstFile = *fileIt;
 	uint64_t fileSize = firstFile.size;
 	uint64_t offset = 0;
-	uint64_t toRead = firstFile.size < mChunkSize ? (size_t)fileSize : (size_t)mChunkSize;
+	uint64_t toRead = firstFile.size < mChunkSize ? fileSize : mChunkSize;
 	unsigned char firstFileHash[HashSize];
 	unsigned char secondFileHash[HashSize];
 
