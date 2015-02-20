@@ -11,37 +11,16 @@ struct FileInfo
 		: path(path)
 		, size(size)
 	{}
-
-	FileInfo(const FileInfo& other)
-	{
-		if (&other != this) {
-			path = other.path;
-			size = other.size;
-		}
-	}
 	
 	FileInfo(FileInfo&& other)
 		: path(std::move(other.path))
 		, size(other.size)
 	{}
-
-	const FileInfo& operator=(FileInfo& other) 
-	{
-		if (&other != this) {
-			path = other.path;
-			size = other.size;
-		}
-	}
-	const FileInfo& operator=(FileInfo&& other)
-	{
-		path = std::move(other.path);
-		size = other.size;
-
-		return *this;
-	}
-
+	
 	std::wstring path;
 	uint64_t size;
+
+	NO_COPY_ASSIGN(FileInfo);
 };
 
 namespace {
@@ -119,7 +98,7 @@ void DupeSearcher::SearchDupes(const std::wstring& dirPath)
 	}
 
 	if (zeroFilesGroup.size() > 1)
-		mFileGroups.push_back(zeroFilesGroup);
+		mFileGroups.push_back(std::move(zeroFilesGroup));
 }
 
 void DupeSearcher::SplitGroup(FileGroups::iterator groupIt)
@@ -183,7 +162,7 @@ void DupeSearcher::SplitGroup(FileGroups::iterator groupIt)
 			}
 
 			if (std::memcmp(firstFilePtr, secondFilePtr, cmpCount) != 0) {
-				newGroup.push_back(*fileIt);
+				newGroup.push_back(std::move(*fileIt));
 				fileIt = group.erase(fileIt);
 				continue;
 			}
@@ -205,7 +184,7 @@ void DupeSearcher::SplitGroup(FileGroups::iterator groupIt)
 	}
 
 	if (!IsDummyGroup(newGroup))
-		mFileGroups.push_back(newGroup);
+		mFileGroups.push_back(std::move(newGroup));
 
 	if (IsDummyGroup(group))
 		groupIt = mFileGroups.erase(groupIt);
