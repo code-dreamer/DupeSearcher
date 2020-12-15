@@ -1,0 +1,78 @@
+First of all, we need to get the files in requested folder (with files in subfolders). We have huge amount of files and I know from my experience that FindFirstFile\FindNextFile is the fastest way to walk directory. That is why I implement file search using this API (in FileSysUtils::DirTravel). Files with different sizes are different. So, after search I have group's set like this:
+
+ group1    group2
+file1     file5  
+file2     file6
+file3
+file4
+
+The files within one group has same size.
+
+Next I want to compare files in this groups (compare algorithm I'll explain later). 
+
+Suppose file1 and file2 are duplicates. First, I move file3 and file4 to new group:
+ 
+ group1    group2    group3
+file1     file5     file3  
+file2     file6     file4
+
+Then I check group2. Suppose file5 and file6 are different. So I split this group to:
+
+ group1    group2    group3    group4
+file1     file5     file3      file6  
+file2               file4
+
+Finally, I check group3, suppose file3 and file4 are same, so group 3 remains untouched.
+
+At this final point I remove dummy groups (group 2 and group 4):
+
+ group1   group3
+file1    file3 
+file2    file4
+
+This are our searched duplicates. Done!
+
+But there are still two unsolved issues:
+1. How to compare huge amount of big sized files?
+2. How to read files contents really fast?
+
+To compare big sized files, I decided to go in this way, for example:
+
+file1
+file2
+file3
+
+I read first chunk of file1, calculate it hash and compare with chunk's hash of all other files in group. If they are different, then files are different too. If they are same, I make offset, read next chunk in file1 and compare with next chunk's hash of other files, and so on. If I reach eof, then this files are same and remain in group.
+The simple case (optimization). If group consist only of two files, there is no need to calculate hash. In this simple case I compare two files byte by byte.
+As hash algorithm I've used md5, which is fast enough and have small amount of collisions.
+
+The chunk size must be quite big, because of HDD nature. For example, we have this read operations:
+
+read 1-st file1 chunk
+read 1-st file2 chunk
+read 1-st filen chunk
+read 2-nd file1 chunk
+read 2-nd file2 chunk
+read 2-nd filen chunk
+read 3-nd file1 chunk
+read 3-nd file2 chunk
+read 3-nd filen chunk
+<eof>
+
+In usual case, HDD has very good linear read speed and poor parallel read speed. Therefore the chunk size must be quite big. Especially when files have big size. That is why this operations will be faster:
+
+read 1-st file1 bug_chunk
+read 1-st file2 bug_chunk
+read 1-st filen bug_chunk
+read 2-nd file1 bug_chunk
+read 2-nd file2 bug_chunk
+read 2-nd filen bug_chunk
+<eof>
+
+How to read files contents really fast?
+For this task I've used file mapping technique, which provides the fastest way as possible to read file data.
+
+
+
+I've chose list to store file groups and files, because I need to effectively erase any element within container from any position, and I want to have correct iterators after this operation. At the same time, I don't need random access by index. Therefore list is a good choice. 
+
